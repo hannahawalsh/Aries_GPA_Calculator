@@ -14,8 +14,9 @@ file = st.file_uploader("", type="pdf")
 
 if file:
     show_grades = widgets.checkbox("Show Grades", False)
-    copy_button = widgets.button("Copy to Clipboard")
-    # reset_button = widgets.button("Reset")
+
+    # Copy doesn't work on streamlit sharing
+    # copy_button = widgets.button("Copy to Clipboard")
 
     # Parse PDF Pages
     pages = []
@@ -59,5 +60,5 @@ if file:
         GPA_text += "  \n"
     text_area.markdown(GPA_text)
 
-    if copy_button:
-        pyperclip.copy(GPA_text.replace("*", ""))
+    # if copy_button:
+    #     pyperclip.copy(GPA_text.replace("*", ""))
