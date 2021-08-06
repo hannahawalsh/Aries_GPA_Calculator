@@ -8,8 +8,8 @@ st.set_page_config("GPA Calculator", page_icon="aplus.jpg")
 
 title_spot = st.empty()
 title_spot.title("Aries Gradebook GPA Calculator")
-text_area = st.beta_container()
-widgets = st.beta_container()
+text_area = st.container()
+widgets = st.container()
 file = st.file_uploader("", type="pdf")
 
 if file:
