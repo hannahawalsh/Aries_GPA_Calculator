@@ -61,7 +61,8 @@ if file:
 
     # Download
     file_name = f"grades_as_of_{date.replace(' ', '_').replace(',', '')}.txt"
-    widgets.download_button("Download Results", GPA_text, file_name=file_name)
+    widgets.download_button("Download Results", GPA_text.replace("*", ""),
+                             file_name=file_name)
 
     # if copy_button:
     #     pyperclip.copy(GPA_text.replace("*", ""))
