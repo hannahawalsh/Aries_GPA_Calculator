@@ -14,7 +14,6 @@ file = st.file_uploader("", type="pdf")
 
 if file:
     show_grades = widgets.checkbox("Show Grades", False)
-
     # Copy doesn't work on streamlit sharing
     # copy_button = widgets.button("Copy to Clipboard")
 
@@ -59,6 +58,10 @@ if file:
             GPA_text += f"({', '.join(sorted(v['grades']))})"
         GPA_text += "  \n"
     text_area.markdown(GPA_text)
+
+    # Download
+    file_name = f"grades_as_of_{date.replace(' ', '_').replace(',', '')}.txt"
+    widgets.download_button("Download Results", GPA_text, file_name=file_name)
 
     # if copy_button:
     #     pyperclip.copy(GPA_text.replace("*", ""))
