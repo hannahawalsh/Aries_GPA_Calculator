@@ -1,8 +1,7 @@
 import streamlit as st
-import PyPDF2
+import fitz
 import re
 import numpy as np
-import pyperclip
 
 st.set_page_config("GPA Calculator", page_icon="aplus.jpg")
 
@@ -18,14 +17,16 @@ if file:
     # copy_button = widgets.button("Copy to Clipboard")
 
     # Parse PDF Pages
-    pages = []
-    reader = PyPDF2.PdfFileReader(file)
-    for i in range(reader.numPages):
-        pages.append(reader.getPage(i).extractText())
+    # pages = []
+    # reader = PyPDF2.PdfFileReader(file)
+    # for i in range(reader.numPages):
+    #     pages.append(reader.getPage(i).extractText())
+    pages = fitz.open(file)
 
     # Get date of report
-    date = re.search(r"\)(.*?) Grade Summary",
-                     pages[0]).group(1)
+    # date = re.search(r"\)(.*?) Grade Summary",
+    #                  pages[0]).group(1)
+    date = pages[0].get_text().split("\n")[1]
     title_spot.subheader(f"Grades as of {date}")
 
     def get_GPA(letter_grades):
@@ -38,31 +39,78 @@ if file:
     # Get name, grades, and GPA of all students
     students = {}
     for page in pages:
-        name = re.search(r"Report For (.*?) \(", page).group(1)
+        pagetext = page.get_text()
+        if name_match := re.search(r"Report For (.*?) \(", pagetext):
+            name = name_match.group(1)
+        else:
+            continue
 
-        letter_grades = []
-        grade_table = re.search(r"Overall(.*?)Signature", page, re.S).group(1)
+        
+    #     # letter_grades = []
+        grade_table = re.search(r"Overall(.*?)Signature", pagetext, re.S)
+        if grade_table:
+            grade_table = grade_table.group(1)
+            classes = re.split(r"(?<=Missing Assignments\n\d)", grade_table)
 
-        for class_grade in grade_table.split("Missing Assignments")[:-1]:
-            search_string = r"[0-9]+([.][0-9]*)?\s+(?P<letter>[ABCDEFI])"
-            grade = re.search(search_string, class_grade.split(" - ")[1])
-            if grade:
-                letter_grades.append(grade.group("letter"))
-        students[name] = {"GPA": get_GPA(letter_grades),
-                          "grades": letter_grades}
+            pattern = r"(?P<gpa>[0-5])\s*(?P<grade>[A-F])?$"
+            gpas = []
+            grades = []
+
+
+            for c in classes:
+                if not c.strip():
+                    continue 
+                m = re.search(pattern, c.split("\n")[2])
+                if not m:
+                    continue 
+                gpa = float(m.group("gpa"))
+                if gpa or c.endswith("0"):
+                    gpas.append(gpa)
+                    grades.append(m.group("grade"))
+
+
+            # gpa_match = [
+            #     (re.search(p, c.split("\n")[2]), c.endswith("0")) 
+            #     for c in classes if c.strip()
+            # ]
+            # gpas = [(float(e[0].group(1)), e[1]) for e in gpa_match if e[0]]
+            # mean_gpa = np.mean([gpa for gpa, no_miss in gpas if gpa or no_miss])
+            mean_gpa = np.mean(gpas) if len(gpas) else "N/A"
+            students[name] = {"GPA": mean_gpa, "grades": grades}
+
+    #     for class_grade in grade_table.split("Missing Assignments")[:-1]:
+    #         search_string = r"[0-9]+([.][0-9]*)?\s+(?P<letter>[ABCDEFI])"
+    #         grade = re.search(search_string, class_grade.split(" - ")[1])
+    #         if grade:
+    #             letter_grades.append(grade.group("letter"))
+    #     students[name] = {"GPA": get_GPA(letter_grades),
+    #                       "grades": letter_grades}
     GPA_text = ""
     gpa = lambda x: x[1]["GPA"]
-    for k, v in sorted(students.items(), key=gpa, reverse=True):
-        GPA_text += f"**{k}**: {v['GPA']:.2f}  "
+    for student, info in sorted(students.items(), key=gpa, reverse=True):
+        GPA_text += f"**{student}**: {info['GPA']:.2f}"
         if show_grades:
-            GPA_text += f"({', '.join(sorted(v['grades']))})"
+            # GPA_text += str(info["grades"])
+            # GPA_text += ", ".join([g for g in sorted(info["grades"])])
+            GPA_text += " (" + ", ".join(sorted([x for x in info["grades"] if x is not None])) + ")"
         GPA_text += "  \n"
+
+    #     GPA_text += f"**{k}**: {v['GPA']:.2f}  "
+    #     if show_grades:
+    #         GPA_text += f"({', '.join(sorted(v['grades']))})"
+    #     GPA_text += "  \n"
+
+    # GPA_text = "\n".join([f"{student['name']}" for student in students])
+
     text_area.markdown(GPA_text)
 
-    # Download
-    file_name = f"grades_as_of_{date.replace(' ', '_').replace(',', '')}.txt"
-    widgets.download_button("Download Results", GPA_text.replace("*", ""),
-                             file_name=file_name)
+    # st.write(students)
+
+    # # Download
+    # file_name = f"grades_as_of_{date.replace(' ', '_').replace(',', '')}.txt"
+    # widgets.download_button("Download Results", GPA_text.replace("*", ""),
+    #                          file_name=file_name)
 
     # if copy_button:
     #     pyperclip.copy(GPA_text.replace("*", ""))
+################################################################################
