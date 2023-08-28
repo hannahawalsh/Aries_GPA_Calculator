@@ -19,6 +19,15 @@ if file is not None:
     date = pages[0].get_text().split("\n")[1]
     title_spot.subheader(f"Grades as of {date}")
 
+    def get_GPA(letter_grades):
+        # """ From a list of letter grades, get GPA """
+        # letter_to_gpa = {"A": 4.0, "B": 3.0, "C": 2.0, "D": 1.0, "F": 0.0}
+        # if letter_grades:
+        #     return np.mean([letter_to_gpa[L] for L in letter_grades])
+        # return 0.0
+        if letter_grades:
+            return np.mean([float(x) for x in letter_grades if float(x)])
+        return 0.0
 
     # Get name, grades, and GPA of all students
     students = {}
@@ -55,6 +64,14 @@ if file is not None:
             mean_gpa = np.mean(gpas) if len(gpas) else "N/A"
             students[name] = {"GPA": mean_gpa, "grades": grades}
 
+        for class_grade in grade_table.split("Missing Assignments")[:-1]:
+            # search_string = r"[0-9]+([.][0-9]*)?\s+(?P<letter>[ABCDEFI])"
+            search_string = r"(?P<gpa>[0-9]+([.][0-9]*)?)\s+[ABCDEFI]"
+            grade = re.search(search_string, class_grade.split(" - ")[1])
+            if grade:
+                letter_grades.append(grade.group("gpa"))
+        students[name] = {"GPA": get_GPA(letter_grades),
+                          "grades": letter_grades}
     GPA_text = ""
     sorted_data = sorted(students.items(), key=lambda item: item[1]["GPA"], reverse=True)
     for student, info in {key: value for key, value in sorted_data}.items():
