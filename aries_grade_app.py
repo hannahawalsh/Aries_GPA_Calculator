@@ -13,7 +13,7 @@ file = st.file_uploader("Upload File", type="pdf", label_visibility="hidden")
 
 if file is not None:
     show_grades = widgets.checkbox("Show Grades", False)
-    pages = fitz.open(file)
+    pages = fitz.open(stream=file.read())
 
     # Get date of report
     date = pages[0].get_text().split("\n")[1]
