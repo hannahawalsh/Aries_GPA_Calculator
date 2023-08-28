@@ -45,6 +45,7 @@ if file is not None:
             pattern = r"(?P<gpa>\d+\.?\d+)\s*(?P<grade>[A-F])?$"
             gpas = []
             letter_grades = []
+            grades = []
 
 
             for c in classes:
