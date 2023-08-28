@@ -1,8 +1,7 @@
 import streamlit as st
-import PyPDF2
+import fitz
 import re
 import numpy as np
-import pyperclip
 
 st.set_page_config("GPA Calculator", page_icon="aplus.jpg")
 
@@ -10,22 +9,14 @@ title_spot = st.empty()
 title_spot.title("Aries Gradebook GPA Calculator")
 text_area = st.container()
 widgets = st.container()
-file = st.file_uploader("", type="pdf")
+file = st.file_uploader("Upload File", type="pdf", label_visibility="hidden")
 
-if file:
+if file is not None:
     show_grades = widgets.checkbox("Show Grades", False)
-    # Copy doesn't work on streamlit sharing
-    # copy_button = widgets.button("Copy to Clipboard")
-
-    # Parse PDF Pages
-    pages = []
-    reader = PyPDF2.PdfFileReader(file)
-    for i in range(reader.numPages):
-        pages.append(reader.getPage(i).extractText())
+    pages = fitz.open(stream=file.read())
 
     # Get date of report
-    date = re.search(r"\)(.*?) Grade Summary",
-                     pages[0]).group(1)
+    date = pages[0].get_text().split("\n")[1]
     title_spot.subheader(f"Grades as of {date}")
 
     def get_GPA(letter_grades):
@@ -41,10 +32,37 @@ if file:
     # Get name, grades, and GPA of all students
     students = {}
     for page in pages:
-        name = re.search(r"Report For (.*?) \(", page).group(1)
+        pagetext = page.get_text()
+        if name_match := re.search(r"Report For (?P<name>.*?) \(", pagetext):
+            name = name_match.group("name")
+        else:
+            continue
 
-        letter_grades = []
-        grade_table = re.search(r"Overall(.*?)Signature", page, re.S).group(1)
+        grade_table = re.search(r"Overall(.*?)Signature", pagetext, re.S)
+        if grade_table:
+            grade_table = grade_table.group(1)
+            classes = re.split(r"(?<=Missing Assignments\n\d)", grade_table)
+            pattern = r"(?P<gpa>\d+\.?\d+)\s*(?P<grade>[A-F])?$"
+            gpas = []
+            grades = []
+
+
+            for c in classes:
+                if not c.strip():
+                    continue 
+                m = re.search(pattern, c.split("\n")[2])
+                if not m:
+                    continue 
+                gpa = float(m.group("gpa"))
+                no_missings = c.endswith("0")
+                if gpa or not no_missings:
+                    # if gr := m.group("grade"):
+                    gpas.append(gpa)
+                    # grades.append(str(m.group("grade")) + f"({c[-1]})")
+                    grades.append(m.group("grade"))
+
+            mean_gpa = np.mean(gpas) if len(gpas) else "N/A"
+            students[name] = {"GPA": mean_gpa, "grades": grades}
 
         for class_grade in grade_table.split("Missing Assignments")[:-1]:
             # search_string = r"[0-9]+([.][0-9]*)?\s+(?P<letter>[ABCDEFI])"
@@ -55,11 +73,11 @@ if file:
         students[name] = {"GPA": get_GPA(letter_grades),
                           "grades": letter_grades}
     GPA_text = ""
-    gpa = lambda x: x[1]["GPA"]
-    for k, v in sorted(students.items(), key=gpa, reverse=True):
-        GPA_text += f"**{k}**: {v['GPA']:.2f}  "
+    sorted_data = sorted(students.items(), key=lambda item: item[1]["GPA"], reverse=True)
+    for student, info in {key: value for key, value in sorted_data}.items():
+        GPA_text += f"**{student}**: {info['GPA']:.2f}"
         if show_grades:
-            GPA_text += f"({', '.join(sorted(v['grades']))})"
+            GPA_text += " (" + ", ".join([x for x in info["grades"] if x is not None]) + ")"
         GPA_text += "  \n"
     text_area.markdown(GPA_text)
 
@@ -67,6 +85,3 @@ if file:
     file_name = f"grades_as_of_{date.replace(' ', '_').replace(',', '')}.txt"
     widgets.download_button("Download Results", GPA_text.replace("*", ""),
                              file_name=file_name)
-
-    # if copy_button:
-    #     pyperclip.copy(GPA_text.replace("*", ""))
