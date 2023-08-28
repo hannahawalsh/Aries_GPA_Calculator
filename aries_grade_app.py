@@ -44,7 +44,7 @@ if file is not None:
             classes = re.split(r"(?<=Missing Assignments\n\d)", grade_table)
             pattern = r"(?P<gpa>\d+\.?\d+)\s*(?P<grade>[A-F])?$"
             gpas = []
-            grades = []
+            letter_grades = []
 
 
             for c in classes:
