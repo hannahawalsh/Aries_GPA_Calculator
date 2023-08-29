@@ -1,5 +1,17 @@
-[global]
-developmentMode = false
+#[global]
+#developmentMode = false
+
+#[client]
+#showErrorDetails = false
 
 [server]
-port = 8501
+runOnSave = true
+maxUploadSize = 2000
+
+[theme]
+base="light"
+primaryColor="#609f6a"
+backgroundColor="#ffffff"
+secondaryBackgroundColor="#f0f6f1"
+textColor="#000000"
+font="sans serif"
